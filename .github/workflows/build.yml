@@ -42,7 +42,7 @@ jobs:
               cd $dir
 
               project_name="${dir##*/}"
-              platforms=("Windows" "Linux" "Web" "Mac")
+              platforms=("windows" "linux" "web" "mac")
               presets=("Windows Desktop" "Linux/X11" "Web" "macOS")
 
               source="./build/${project_name}"
