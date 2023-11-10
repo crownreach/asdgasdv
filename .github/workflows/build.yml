@@ -1,0 +1,89 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+env:
+  tag_name: ${{ github.ref_name }}
+  main_project: "main"
+
+jobs:
+  run:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 30
+    name: ${{ matrix.preset }} Export
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        shell: bash
+        run: |
+          echo "game_version=$(cat .version)" >> $GITHUB_ENV
+          echo "godot_version=$(cat .godot.version)" >> $GITHUB_ENV
+
+      - name: Add Build Info
+        uses: robpc/godot-build-info-action@v1
+        with:
+          version: ${{ env.game_version }}
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v1
+        with:
+          version: ${{ env.godot_version }}
+          use-dotnet: false
+
+      - name: Build
+        shell: bash
+        run: |
+          [ -f plug.gd ] && godot --headless -s plug.gd install || true
+          timeout 60 godot --editor --headless || true
+
+          for dir in $(find . -wholename "**/project.godot" -exec dirname {} \;); do
+              cd $dir
+
+              project_name="${dir##*/}"
+              platforms=("Windows" "Linux" "Web" "Mac")
+              presets=("Windows Desktop" "Linux/X11" "Web" "macOS")
+
+              source="./build/${project_name}"
+              destination="../build"
+              mkdir -p "${source}"
+
+              if [ "${project_name}" = "${{ env.main_project }}" ]; then
+                  echo "Exporting Main: '$project_name'"
+              else
+                  echo "Exporting Pack: '$project_name'"
+              fi
+
+              for i in "${!platforms[@]}"; do
+                  platform="${platforms[$i]}"
+                  preset="${presets[$i]}"
+                  source+="/${platform}"
+
+                  if [ "${project_name}" = "${{ env.main_project }}" ]; then
+                      declare -A outputs=(["windows"]="${project_name}.exe" ["linux"]="${project_name}.x86_64" ["mac"]="${project_name}.zip" ["web"]="index.html")
+                      timeout 60 godot --export-release "${preset}" --headless "${source}/${outputs[platform]}" || true
+                  else
+                      timeout 60 godot --export-pack "${preset}" --headless "${source}/${project_name}.zip" || true
+                  fi
+
+                  mkdir -p "${destination}" && mv "${source}" "${destination}"
+              done
+
+              cd ../
+          done
+
+          find "./build" -printf '%y %p\n'
+
+      # Installing rsync is needed in order to deploy to GitHub Pages. Without it, the build will fail.
+      - name: Install rsync
+        shell: bash
+        run: |
+          apt-get update && apt-get install -y rsync
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: build

@@ -1,0 +1,37 @@
+[gd_scene load_steps=4 format=3 uid="uid://isbfmempj55x"]
+
+[ext_resource type="Script" path="res://main/scripts/index.gd" id="1_55k1q"]
+[ext_resource type="PackedScene" uid="uid://11w86qsqgf6o" path="res://main/scenes/godot.tscn" id="3_2h0nn"]
+[ext_resource type="PackedScene" uid="uid://ctjay7ubj2517" path="res://main/scenes/game.tscn" id="4_kammx"]
+
+[node name="Splash" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_55k1q")
+
+[node name="Background" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scenes" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Godot" parent="Scenes" instance=ExtResource("3_2h0nn")]
+layout_mode = 2
+
+[node name="Game" parent="Scenes" instance=ExtResource("4_kammx")]
+layout_mode = 2

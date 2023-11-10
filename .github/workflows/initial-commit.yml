@@ -1,0 +1,87 @@
+name: Initial commit
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close Fork Pulls
+        uses: peter-evans/close-fork-pulls@v2
+        with:
+          comment: |
+            Sorry, pull requests are not accepted for this repository. 
+            We are closing this PR to prevent force-push.
+
+      - name: Checkout
+        uses: actions/checkout@v3      
+        with:
+         persist-credentials: false
+         fetch-depth: 0
+
+      - name: Modify last update
+        shell: bash
+        run: |
+          d=`date '+%Y-%m-%dT%H:%M:%SZ'`
+          echo $d > LAST_UPDATED
+          
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config --local user.email "lazuee.dev@gmail.com"
+          git config --local user.name "lazuee"
+          git add -A
+          
+          git commit -m "Initial Commit"
+
+      - name: GitHub Push
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          force: true
+          directory: "."
+          branch: ${{ github.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: lazuee/github-fresh-commit@1.0.3
+        with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="repos/$GITHUB_REPOSITORY/actions/runs"
+
+          delete_id() {
+            local id=$1
+            local result=""
+          
+            if gh api -X DELETE "$url/$id" --silent; then
+              result="✅: Deleted '$id'"
+            else
+              result="❌: Failed '$id'"
+            fi
+          
+            printf "%s\n" "$result"
+          }
+          
+          while true; do
+            total_ids=$(gh api "$url" | jq '[.workflow_runs[] | select(.status == "completed")] | length')
+          
+            if [[ $total_ids -eq 0 ]]; then
+              echo "No more workflow_runs to delete."
+              break
+            fi
+          
+            gh api "$url" |
+            jq -r '.workflow_runs[] | select(.status == "completed") | .id' |
+            while read -r id; do
+              id="${id//$'\r'/}"
+              delete_id "$id"
+            done
+
+            sleep 10
+          done
