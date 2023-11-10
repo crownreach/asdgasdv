@@ -45,7 +45,7 @@ jobs:
               platforms=("windows" "linux" "web" "mac")
               presets=("Windows Desktop" "Linux/X11" "Web" "macOS")
 
-              source="./build/${project_name}"
+              source="./build"
               destination="../build"
               mkdir -p "${source}"
 
@@ -58,7 +58,7 @@ jobs:
               for i in "${!platforms[@]}"; do
                   platform="${platforms[$i]}"
                   preset="${presets[$i]}"
-                  build_source="${source}/${platform}"
+                  build_source="${source}/${project_name}/${platform}"
 
                   if [ "${project_name}" = "${{ env.main_project }}" ]; then
                       declare -A outputs=(["windows"]="${project_name}.exe" ["linux"]="${project_name}.x86_64" ["mac"]="${project_name}.zip" ["web"]="index.html")
